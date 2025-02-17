@@ -1,19 +1,12 @@
-from django.conf.urls import url
-
-from . import views
+from django.urls import path
+from .views import dashboard, admin_login, admin_panel, post_notice, delete_notice, update_notice
 
 urlpatterns = [
-    url(r'^$', view=views.login, name="index"),
-    url(r'^login$', view=views.login, name="login"),
-    # url(r'^signup$', view=views.signup, name="signup"),
-    url(r'^panel$', view=views.panel, name="panel"),
-    url(r'^logout$', view=views.logout, name='logout'),
-    url(r'^profile$', view=views.settings, name='profile'),
-    url(r'^register$', view=views.registerUser, name='register'),
-    url(r'^privacy$', view=views.privacy, name='privacy'),
-    url(r'^approve$', view=views.approve, name='approve'),
-    url(r'^changepassword$', view=views.change_password, name='changepassword'),
-    url(r'^post$',view=views.post,name="post"),
-    url(r'^board$',view=views.board,name="board")
+    path('', dashboard, name='dashboard'),
+    path('custom-admin/login/', admin_login, name='admin_login'),
+    path('custom-admin/panel/', admin_panel, name='admin_panel'),
+    path('custom-admin/post/', post_notice, name='post_notice'),
 
+    path('custom-admin/delete/', delete_notice, name='delete_notice'),
+    path('custom-admin/update/', update_notice, name='update_notice'),
 ]

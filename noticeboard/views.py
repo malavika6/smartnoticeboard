@@ -1,230 +1,94 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, JsonResponse
-from django.utils.datastructures import MultiValueDictKeyError
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from digitalnoticeboard.utils.utils import base64ofsha
-from .models import User, Posts, Department
-import requests
-import json
+from django.contrib.sessions.models import Session
+from .models import *
 
+def dashboard(request):
+    """ Publicly lists all notices """
+    notices = Notice.objects.all().order_by('-id')
+    return render(request, 'noticeboard/dashboard.html', {"notices": notices})
 
-def login(request):
-    username = request.session.get("username")
-    department = request.session.get("department")
-    if username is not None and department is not None:
-        return redirect('panel')
+@csrf_exempt
+def post_notice(request):
+    """ Allows admin to add new notices """
+    admin_email = request.session.get("admin_email")
+    if not admin_email:
+        return redirect('admin_login')
 
-    if request.method == "GET":
-        return render(request, 'noticeboard/login.html')
-    elif request.method == "POST":
-        try:
-            username = request.POST['username']
-            password = request.POST["password"]
-            hashed = base64ofsha(password)
+    if request.method == "POST":
+        title = request.POST.get("title", "No Title")
+        description = request.POST.get("description", "No Content")
+        category = request.POST.get("category", "General")
 
-            rec = User.objects.filter(email=username, password=hashed)
-            if len(rec) == 1:
-                if rec[0].is_approved == False:
-                    return render(request, 'noticeboard/login.html', {
-                        "error": "Your account is not approved. Please contact concerned authority for approval"})
-                rec = rec[0]
-                request.session["department"] = rec.department.department_name
-                request.session["username"] = username
-                return redirect('panel')
-            else:
-                return render(request, 'noticeboard/login.html', {"error": "Email / password does not match"})
-        except IndexError:
-            return HttpResponse("Invalid Request")
+        notice = Notice(title=title, description=description, category=category)
+        notice.save()
+        return redirect('dashboard')
+    
+    return render(request, 'noticeboard/admin_panel.html')
 
+@csrf_exempt
+def delete_notice(request):
+    """ Allows admin to delete notices """
+    admin_email = request.session.get("admin_email")
+    if not admin_email:
+        return redirect('admin_login')
 
-def panel(request):
-    username = request.session.get("username")
-    department = request.session.get("department")
-    if request.method == "GET" and username is not None and department is not None:
-        user = User.objects.filter(email=username)[0]
-        posts = Posts.objects.filter(department=user.department)
-        if len(posts) == 0:
-            return render(request, 'noticeboard/feed.html', {"posts": posts, "noposts": True})
-        return render(request, 'noticeboard/feed.html', {"posts": posts})
-    elif request.method == "POST" and username is not None and department is not None:
-        s = getSessionDetails(request)
-        if s[0]:
-            try:
-                user = User.objects.filter(email=username)[0]
-                department = Department.objects.filter(department_id=user.department)[0]
-                title = request.POST["post-title"]
-                notice_text = request.POST["notice"]
-                user = User.objects.filter(email=s[1])[0]
-                p = Posts(title=title, notice_text=notice_text, user=user, department=department)
-                p.save()
-                return redirect('panel')
-            except IndexError:
-                return JsonResponse({"status": "failed", "message": "There was some error while posting the notice"})
-    else:
-        return redirect('login')
+    if request.method == "POST":
+        notice_id = request.POST.get("notice_id")
+        Notice.objects.filter(id=notice_id).delete()
+        return JsonResponse({"status": "success", "message": "Notice deleted"})
 
+    return JsonResponse({"status": "failed", "message": "Invalid request"})
 
-def privacy(request):
-    return render(request, 'noticeboard/privacy.html')
+@csrf_exempt
+def update_notice(request):
+    """ Allows admin to update notices """
+    admin_email = request.session.get("admin_email")
+    if not admin_email:
+        return redirect('admin_login')
 
+    if request.method == "POST":
+        notice_id = request.POST.get("notice_id")
+        new_title = request.POST.get("title")
+        new_description = request.POST.get("description")
+        new_category = request.POST.get("category")
 
-def settings(request):
-    username = request.session.get("username")
-    department = request.session.get("department")
+        notice = Notice.objects.filter(id=notice_id).first()
+        if notice:
+            notice.title = new_title
+            notice.description = new_description
+            notice.category = new_category
+            notice.save()
+            return JsonResponse({"status": "success", "message": "Notice updated"})
+    
+    return JsonResponse({"status": "failed", "message": "Invalid request"})
 
-    if request.method == "GET" and username is not None and department is not None:
-        u = User.objects.filter(email=username)[0]
+def admin_login(request):
+    """ Admin login page """
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        
+        print(f"Login attempt: {email} | {password}")  # Debugging
 
-        return render(request, 'noticeboard/profile.html',
-                      context={"name": u.name, "email": u.email, "designation": u.designation,
-                               "department": u.department.department_name, "is_admin": u.is_admin})
-    else:
-        return redirect('login')
-
-
-def getSessionDetails(request):
-    username = request.session.get("username")
-    department = request.session.get("department")
-    if username is not None and department is not None:
-        return (True, username, department)
-    else:
-        return (False,)
-
-
-def registerUser(request):
-    departments = Department.objects.all()
-    if request.method == "GET":
-
-        return render(request, 'noticeboard/register.html', {"departments": departments})
-    elif request.method == "POST":
-        try:
-            name = request.POST["name"]
-            designation = request.POST['designation']
-            department = Department.objects.filter(department_id=request.POST['department'])[0]
-            email = request.POST['email']
-            password = request.POST["password"]
-
-            user = User(name=name, designation=designation,
-                        department=department,
-                        email=email,
-                        password=base64ofsha(password))
-            user.save(force_insert=True)
-            return render(request, 'noticeboard/register.html',
-                          {"type": "success", "message": "Registration Successful", "departments": departments})
-        except MultiValueDictKeyError:
-            return render(request, 'noticeboard/register.html',
-                          {"type": "error", "message": "Please provide all the paramters for registration",
-                           "departments": departments})
-
-
-def approve(request):
-    username = request.session.get('username')
-    department = request.session.get('department')
-    if request.method == "GET" and username is not None and department is not None:
-        users = User.objects.filter(is_approved=False)
-        admin = User.objects.filter(email=username)[0]
-        if not admin.is_admin:
-            return render(request, 'noticeboard/approval.html',
-                          {"users": [], "message": "Sorry you cannot approve users. Please contact the admin"})
-        if len(users) == 0:
-            return render(request, 'noticeboard/approval.html',
-                          {"users": users, "message": "No users pending for approval"})
-
-        return render(request, 'noticeboard/approval.html', {"users": users})
-    elif request.method == "POST" and username is not None and department is not None:
-        user = User.objects.filter(email=request.POST["username"])[0]
-        user.is_approved = True
-        user.save(force_update=True)
-        return redirect('approve')
-    else:
-        return redirect('login')
-
-
-def logout(request):
-    try:
-        del request.session['username']
-        del request.session["department"]
-    except:
-        return redirect('login')
-    return redirect('login')
-
-
-def post(request):
-    username = request.session.get('username')
-    department = request.session.get('department')
-    if request.method == "POST" and username is not None and department is not None:
-        post_id = request.POST["post_id"]
-        req_type = request.POST["req_type"]
-        if req_type == 'delete':
-            post = Posts.objects.filter(id=post_id)[0]
-            post.delete()
-            return redirect('panel')
-        elif req_type == 'edit':
-            post = Posts.objects.filter(id=post_id)[0]
-            content_new = request.POST["content"]
-            post.notice_text = content_new
-            post.save(force_update=True)
-            return redirect('panel')
+        admin = AdminUser.objects.filter(email=email, password=password).first()
+        if admin:
+            request.session["admin_email"] = email
+            print("Login successful!")  # Debugging
+            return redirect('admin_panel')  # Ensure this URL is correct
         else:
-            return redirect('panel')
-    else:
-        return redirect('panel')
+            print("Login failed!")  # Debugging
+            return render(request, 'noticeboard/admin_login.html', {"error": "Invalid credentials"})
+
+    return render(request, 'noticeboard/admin_login.html')
 
 
-def posts(request):
-    s = getSessionDetails(request)
-    if request.method == "GET":
-        pass
-    elif request.method == 'POST':
-        email = request.POST["email"]
-        user = User.objects.filter(email=email)[0]
-        department = Department.objects.filter(department_id=s[1])[0]
-        posts = Posts.objects.filter(department=department)
-        return render()
-    else:
-        return JsonResponse({"status": "failed", "message": "Operation not permitted"})
+def admin_panel(request):
+    """ Admin dashboard to manage notices """
+    admin_email = request.session.get("admin_email")
+    if not admin_email:
+        return redirect('admin_login')
 
-
-def change_password(request):
-    username = request.session.get("username")
-    department = request.session.get("department")
-    if request.method == "GET" and username is not None and department is not None:
-        return redirect('profile')
-    elif request.method == "POST" and username is not None and department is not None:
-        user = User.objects.filter(email=username)[0]
-        current_password = request.POST['current_password']
-        new_password = request.POST['new_password']
-        if user.password == base64ofsha(current_password):
-            user.password = base64ofsha(new_password)
-            user.save(force_update=True)
-            return redirect('profile')
-        else:
-            return render(request, 'noticeboard/profile.html',
-                          {"name": user.name, "email": user.email, "designation": user.designation,
-                           "department": user.department.department_name, "is_admin": user.is_admin,
-                           "message": "Previous password does not match"})
-    else:
-        return redirect('logout')
-
-
-def board(request):
-    if request.method == "GET":
-        department = request.GET.get('dept', 'ece')
-        posts = Posts.objects.filter(department=department).order_by('-id')[:10]
-        print(posts)
-        # r = requests.get('http://things.epsumlabs.com/api/thing/r/hvGj-A5tIr6hn0TjfugBsg**')
-        # print(r.text)
-        # json_sensor = json.loads(r.text)
-        # {"data": [46.7, 26.3, 0, 0, 144, 66, 0], "status": "success", "records": 86406}
-        # json_sensor = json_sensor["data"]
-        # context = {"posts": posts, "temperature": str(json_sensor[1]) + " C", "humidity": str(json_sensor[0]) + "%",
-        #            "smoke": str(json_sensor[3]) + "ppm"}
-        context = {"posts":posts}
-        # print(context)
-        if request.GET.get('type', 'page') == "json":
-            posts_list = []
-            for p in posts:
-                posts_list.append({"title": p.title, "post_text": p.notice_text})
-            context["posts"] = posts_list
-            return JsonResponse(context)
-        return render(request, 'noticeboard/board.html', context=context)
+    notices = Notice.objects.all()
+    return render(request, 'noticeboard/admin_panel.html', {"notices": notices})

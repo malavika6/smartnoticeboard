@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Notices</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        /* General Styles */
+        html, body {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            background: url("{% static 'assets/img/icons/common/main-bg.jpg' %}") no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: 8vh;
+            background-color: white;
+            font-size: 2vh;
+            padding: 1vh 2vw;
+        }
+
+        /* Main Layout */
+        .content-wrapper {
+            display: flex;
+            height: 90vh;
+            padding: 2vh 3vw;
+            gap: 2vw;
+        }
+
+        /* Notices Section */
+        .notices-section {
+            flex: 3;
+            text-align: center;
+        }
+
+        .welcome-heading {
+            font-size: 4vh;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 3vh;
+        }
+
+        .notices-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2vw;
+        }
+
+        /* Notice Card */
+        .notice-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2vh;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-bottom: 5px solid rgba(25, 77, 221, 0.96);
+            transition: transform 0.3s ease-in-out;
+            width: 28vw; /* Fixed width */
+            height: 20vh; /* Fixed height */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 2vh;
+        }
+
+        .notice-card:hover {
+            transform: scale(1.05);
+        }
+
+        .notice-card .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Sidebar (Fixed without Scrolling) */
+        .sidebar {
+            flex: 1;
+            background: white;
+            border: 3px solid rgb(25, 77, 221);
+            border-radius: 10px;
+            padding: 2vh;
+            text-align: center;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar img {
+            width: 80%;
+            border-radius: 10px;
+        }
+
+        .sidebar-text {
+            font-size: 1.8vh;
+            text-align: justify;
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1366px) {
+            .notice-card {
+                width: 40vw;
+                height: auto;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .content-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .sidebar {
+                width: 90vw;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="{% static 'assets/img/icons/common/logo-light.png' %}" alt="Logo" height="50">
+            </a>
+        </div>
+    </nav>
+
+    <div class="content-wrapper">
+        <!-- Notices Section -->
+        <div class="notices-section">
+            <h2 class="welcome-heading">Welcome to Thrissur SBC</h2>
+            <div class="notices-container">
+                {% for notice in notices %}
+                <div class="card notice-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ notice.title }}</h5>
+                        <p class="card-text">{{ notice.description }}</p>
+                        <span class="badge bg-primary">{{ notice.category }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="text-center">
+                <img src="{% static 'assets/img/icons/common/images.jpg' %}" alt="Sidebar Image">
+            </div>
+            <div class="sidebar-text">
+                <h5 class="text-primary">Thrissur Service Co-Operative Bank Ltd.</h5>
+                <p>
+                    Thrissur Service Co-Operative Bank Ltd. No. R-1097 was registered on 20th May 2002 under the Kerala Co-Operative Societies Act-1969.  
+                    The bank started functioning on 16th September 2002 as a Primary Agricultural Credit Bank operating within the Thrissur Municipal Corporation.  
+                    Mr. Mk.Kannan Ex. M.L.A was the Chief Promoter and the first President, a role he continues to hold.  
+                    Initially, the bank’s Head Office was in a rented room at Patturaikkal Junction, but in 2017, it was shifted to its own four-storied building.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Script -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

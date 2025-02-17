@@ -1,3 +1,4 @@
+
 """
 Django settings for digitalnoticeboard project.
 
@@ -14,8 +15,12 @@ import os
 import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# settings.py
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -38,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'noticeboard',
 ]
 
@@ -137,9 +143,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+
+# URL for serving static files
+
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]  # Ensure this is set correctly
+
+ # Ensure this is set!
+
 # STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 PROJECT_ROOT = os.path.join(os.path.dirname(__file__), '..')
 MEDIA_URL = '/media/'

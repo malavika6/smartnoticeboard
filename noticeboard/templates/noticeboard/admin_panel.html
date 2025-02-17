@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="container mt-4">
+    <h1 class="text-center">Admin Noticeboard</h1>
+    <form method="post" action="/admin/post/" class="mb-4">
+        <div class="mb-3">
+            <input type="text" class="form-control" name="title" placeholder="Title" required>
+        </div>
+        <div class="mb-3">
+            <textarea class="form-control" name="description" placeholder="Description" required></textarea>
+        </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" name="category" placeholder="Category" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Notice</button>
+    </form>
+    <h2>Existing Notices</h2>
+    <ul class="list-group">
+        {% for notice in notices %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ notice.title }}</strong>: {{ notice.description }} ({{ notice.category }})
+            </div>
+            <form method="post" action="/admin/delete/" class="d-inline">
+                <input type="hidden" name="notice_id" value="{{ notice.id }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+"""
